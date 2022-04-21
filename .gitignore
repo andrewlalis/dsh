@@ -1,0 +1,15 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/dsh
+dsh.so
+dsh.dylib
+dsh.dll
+dsh.a
+dsh.lib
+dsh-test-*
+*.exe
+*.o
+*.obj
+*.lst
