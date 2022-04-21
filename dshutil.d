@@ -91,32 +91,36 @@ int buildScript(string[] args) {
     }
     import fswatch;
     import core.thread;
-    import std.algorithm;
     auto watcher = FileWatch(filePath, false);
     writefln!"Watching %s to build when file changes."(filePath);
     ProcessBuilder pb = new ProcessBuilder();
     pb.run("dub build --single " ~ filePath);
     while (true) {
         foreach (event; watcher.getEvents()) {
-            if (event.type == FileChangeEventType.modify) {
-                writeln("File changed. Rebuilding...");
-                if (pb.run("dub build --single " ~ filePath) == 0) {
-                    auto f = File(filePath, "r");
-                    foreach (string line; lines(f)) {
-                        if (startsWith(line, "// DSHTEST:")) runScriptTest(filePath, line);
-                    }
-                    f.close();
-                }
-            }
+            if (event.type == FileChangeEventType.modify) handleFileUpdate(filePath, pb);
         }
         Thread.sleep(seconds(1));
+    }
+}
+
+private void handleFileUpdate(string filePath, ProcessBuilder pb) {
+    import std.algorithm;
+    writeln("File changed. Rebuilding...");
+    if (pb.run("dub build --single " ~ filePath) == 0) {
+        auto f = File(filePath, "r");
+        foreach (string line; lines(f)) {
+            if (startsWith(line, "// DSHTEST:")) runScriptTest(filePath, line);
+        }
+        f.close();
     }
 }
 
 private void runScriptTest(string filePath, string line) {
     import std.string;
     import std.algorithm;
-    string argss = line[indexOf(line, "// DSHTEST:") + 1 .. $].strip;
+    if (line.length < 12) return;
+    string args = line[11 .. $].strip;
+    if (args.length == 0) return;
     string scriptName = filePath;
     if (endsWith(filePath, ".d")) {
         scriptName = filePath[0..$-2];
@@ -127,7 +131,7 @@ private void runScriptTest(string filePath, string line) {
     version (Windows) {
         scriptName = scriptName ~ ".exe";
     }
-    string command = scriptName ~ " " ~ argss;
+    string command = scriptName ~ " " ~ args;
     writefln!"Running \"%s\""(command);
     int result = run(command);
     writefln!"Script exited %d"(result);
