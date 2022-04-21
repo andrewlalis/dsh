@@ -161,3 +161,23 @@ unittest {
     setEnv("dsh_test_env_1", "yes");
     assert(getEnv("dsh_test_env_1") == "yes");
 }
+
+/** 
+ * Sleeps for a specified amount of milliseconds.
+ * Params:
+ *   amount = The amount of milliseconds to sleep for.
+ */
+public void sleepMillis(long amount) {
+    import core.thread : sleep, msecs;
+    Thread.sleep(msecs(amount));
+}
+
+/** 
+ * Sleeps for a specified amount of seconds.
+ * Params:
+ *   amount = The amount of seconds to sleep for.
+ */
+public void sleepSeconds(long amount) {
+    import core.thread : sleep, seconds;
+    Thread.sleep(seconds(amount));
+}

@@ -13,3 +13,4 @@ dsh-test-*
 *.o
 *.obj
 *.lst
+*.a
