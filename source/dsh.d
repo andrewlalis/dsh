@@ -168,7 +168,7 @@ unittest {
  *   amount = The amount of milliseconds to sleep for.
  */
 public void sleepMillis(long amount) {
-    import core.thread : sleep, msecs;
+    import core.thread;
     Thread.sleep(msecs(amount));
 }
 
@@ -178,6 +178,6 @@ public void sleepMillis(long amount) {
  *   amount = The amount of seconds to sleep for.
  */
 public void sleepSeconds(long amount) {
-    import core.thread : sleep, seconds;
+    import core.thread;
     Thread.sleep(seconds(amount));
 }

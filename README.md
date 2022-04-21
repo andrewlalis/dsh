@@ -15,23 +15,14 @@ void main() {
 }
 ```
 
-To write your own DSH script, you can copy the above example, or simply execute the following command:
-
-```
-wget https://pastebin.com/raw/vcggm9fx -O script.d
-```
-
-Or on Windows/Powershell with:
-
-```powershell
-Invoke-WebRequest "https://pastebin.com/raw/vcggm9fx" -OutFile script.d
-```
+To write your own DSH script, you can copy the above example to your own local D file.
 
 If you use a script often, you might want to consider compiling your script to an executable. You can do so like this:
 
 ```
 dub build --single script.d
 ```
+> Add the `--build=release` option to specify that you're building a release and not a debug build.
 
 ## Why use DSH?
 DSH offers a few main benefits over writing a script in plain D:
