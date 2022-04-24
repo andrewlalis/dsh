@@ -5,7 +5,7 @@ Here's an example of how you can write a single-file executable D script with DS
 ```d
 #!/usr/bin/env dub
 /+ dub.sdl:
-    dependency "dsh" version="~>1.3.0"
+    dependency "dsh" version="~>1.4.0"
 +/
 import dsh;
 

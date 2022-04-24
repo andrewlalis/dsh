@@ -1,6 +1,6 @@
 #!/usr/bin/env dub
 /+ dub.sdl:
-    dependency "dsh" version="~>1.3.0"
+    dependency "dsh" version="~>1.4.0"
     dependency "fswatch" version="~>0.6.0"
 +/
 
@@ -11,7 +11,7 @@ module dshutil;
 
 import dsh;
 
-const DSH_VERSION = "1.3.0";
+const DSH_VERSION = "1.4.0";
 
 int main(string[] args) {
     import std.string;
@@ -20,10 +20,14 @@ int main(string[] args) {
         return 1;
     }
     string command = args[1].strip;
+    if (command == "--version" || command == "-v") {
+        writeln(DSH_VERSION);
+        return 0;
+    }
     if (command == "create") return createScript(args[2..$]);
     if (command == "build") return buildScript(args[2..$]);
     if (command == "compile") return compileScript(args[2..$]);
-    version(Linux) {
+    version(linux) {
         if (command == "install") return install();
         if (command == "uninstall") return uninstall();
     }
@@ -166,16 +170,15 @@ int compileScript(string[] args) {
 version(linux) {
     int install() {
         runOrQuit("dub build --single --build=release dshutil.d");
-        runOrQuit("mv dshutil /usr/local/bin/dshutil");
+        writeln("Copying dshutil to /usr/local/bin/dshutil");
+        runOrQuit("sudo mv dshutil /usr/local/bin/dshutil");
         writeln("Installed dshutil to /usr/local/bin");
         return 0;
     }
 
     int uninstall() {
-        const filePath = "/usr/local/bin/dshutil";
-        if (exists(filePath)) {
-            remove(filePath);
-        }
+        writeln("Removing dshutil from /usr/local/bin");
+        runOrQuit("sudo rm -f /usr/local/bin/dshutil");
         writeln("Uninstalled dshutil from /usr/local/bin");
         return 0;
     }

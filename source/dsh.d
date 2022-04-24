@@ -12,6 +12,14 @@ module dsh;
 public import std.stdio;
 public import std.file;
 
+public void print(string, Args...)(string s, Args args) {
+    writefln(s, args);
+}
+
+public void error(string, Args...)(string s, Args args) {
+    stderr.writefln(s, args);
+}
+
 /** 
  * Checks if a directory is empty.
  * Params:
@@ -86,7 +94,7 @@ public class ProcessBuilder {
             auto pid = spawnProcess(s, this.stdin, this.stdout, this.stderr, this.env, Config.none, this.dir);
             return wait(pid);
         } catch (ProcessException e) {
-            stderr.writefln!"Could not start process \"%s\": %s"(command, e.msg);
+            error("Could not start process \"%s\": %s", command, e.msg);
             return -1;
         }
     }
@@ -130,7 +138,7 @@ public void runOrQuit(string cmd) {
     import core.stdc.stdlib : exit;
     int r = run(cmd);
     if (r != 0) {
-        stderr.writefln!"Process \"%s\" exited with code %d"(cmd, r);
+        error("Process \"%s\" exited with code %d", cmd, r);
         exit(r);
     }
 }
@@ -166,7 +174,7 @@ public void setEnv(string key, string value) {
     try {
         environment[key] = value;
     } catch (Exception e) {
-        stderr.writefln!"Could not set environment variable \"%s\": %s"(key, e.msg);
+        error("Could not set environment variable \"%s\": %s", key, e.msg);
     }
 }
 
@@ -194,4 +202,24 @@ public void sleepMillis(long amount) {
 public void sleepSeconds(long amount) {
     import core.thread;
     Thread.sleep(seconds(amount));
+}
+
+/** 
+ * Convenience method to replace all occurrences of matching patterns with
+ * some other string.
+ * Params:
+ *   s = The string to replace things in.
+ *   pattern = The regular expression to use to match.
+ *   r = The thing to replace each match with.
+ * Returns: The string with all matches replaced.
+ */
+public string replaceAll(string s, string pattern, string r) {
+    import std.regex;
+    auto re = regex(pattern);
+    return std.regex.replaceAll(s, re, r);
+}
+
+unittest {
+    assert(replaceAll("abc", "a", "d") == "dbc");
+    assert(replaceAll("123abc123", "\\d+", "") == "abc");
 }
