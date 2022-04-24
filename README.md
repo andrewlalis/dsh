@@ -41,3 +41,8 @@ On linux, you may additionally perform the following commands to install dshutil
 
 - `./dshutil.d install` - Builds and installs this script in `/usr/local/bin` so that you can simply run `dshutil` from anywhere.
 - `./dshutil.d uninstall` - Removes `dshutil` from `/usr/local/bin`, if it exists.
+
+As a shortcut, you can install the latest version of dshutil by executing the following command:
+```
+wget https://raw.githubusercontent.com/andrewlalis/dsh/main/dshutil.d -O dshutil.d && ./dshutil.d install
+```
