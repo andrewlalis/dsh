@@ -14,3 +14,5 @@ dsh-test-*
 *.obj
 *.lst
 *.a
+
+dshutil

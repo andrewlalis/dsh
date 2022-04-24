@@ -1,6 +1,6 @@
 #!/usr/bin/env dub
 /+ dub.sdl:
-    dependency "dsh" version="~>1.0.0"
+    dependency "dsh" version="~>1.3.0"
     dependency "fswatch" version="~>0.6.0"
 +/
 
@@ -11,6 +11,8 @@ module dshutil;
 
 import dsh;
 
+const DSH_VERSION = "1.3.0";
+
 int main(string[] args) {
     import std.string;
     if (args.length < 2) {
@@ -20,7 +22,11 @@ int main(string[] args) {
     string command = args[1].strip;
     if (command == "create") return createScript(args[2..$]);
     if (command == "build") return buildScript(args[2..$]);
-    
+    if (command == "compile") return compileScript(args[2..$]);
+    version(Linux) {
+        if (command == "install") return install();
+        if (command == "uninstall") return uninstall();
+    }
     stderr.writefln!"Unsupported command: %s"(command);
     return 1;
 }
@@ -53,7 +59,7 @@ int createScript(string[] args) {
         f.writeln("#!/usr/bin/env dub");
     }
     f.writeln("/+ dub.sdl:");
-    f.writeln("    dependency \"dsh\" version=\"~>1.1.0\"");
+    f.writeln("    dependency \"dsh\" version=\"~>" ~ DSH_VERSION ~ "\"");
     f.writeln("+/");
     f.writeln("import dsh;");
     f.writeln();
@@ -135,4 +141,42 @@ private void runScriptTest(string filePath, string line) {
     writefln!"Running \"%s\""(command);
     int result = run(command);
     writefln!"Script exited %d"(result);
+}
+
+int compileScript(string[] args) {
+    import std.string;
+    if (args.length < 1) {
+        stderr.writeln("Missing required file argument.");
+        return 1;
+    }
+    string filePath = args[0].strip;
+    if (!exists(filePath) || !isFile(filePath)) {
+        stderr.writefln!"%s is not a file."(filePath);
+        return 1;
+    }
+    writeln("Compiling " ~ filePath);
+    int r = run("dub build --single --build=release " ~ filePath);
+    if (r != 0) {
+        stderr.writefln!"Could not compile: %d"(r);
+        return 1;
+    }
+    return 0;
+}
+
+version(linux) {
+    int install() {
+        runOrQuit("dub build --single --build=release dshutil.d");
+        runOrQuit("mv dshutil /usr/local/bin/dshutil");
+        writeln("Installed dshutil to /usr/local/bin");
+        return 0;
+    }
+
+    int uninstall() {
+        const filePath = "/usr/local/bin/dshutil";
+        if (exists(filePath)) {
+            remove(filePath);
+        }
+        writeln("Uninstalled dshutil from /usr/local/bin");
+        return 0;
+    }
 }

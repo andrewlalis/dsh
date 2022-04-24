@@ -5,7 +5,7 @@ Here's an example of how you can write a single-file executable D script with DS
 ```d
 #!/usr/bin/env dub
 /+ dub.sdl:
-    dependency "dsh" version="~>1.1.0"
+    dependency "dsh" version="~>1.3.0"
 +/
 import dsh;
 
@@ -33,5 +33,11 @@ DSH offers a few main benefits over writing a script in plain D:
 
 ## dshutil.d
 Included in this repository is a `dshutil.d` executable script. You can use this script to make it easier to write DSH scripts. It includes the following commands:
-- `./dshutils.d create [filename]` - Creates a new DSH script with all the necessary boilerplate code.
-- `./dshutils.d build <filename>` - Starts watching the given script, and rebuilds it if any changes are made. If the script starts with a comment line like `// DSHTEST: `, the script will be executed with everything following the `:` as command-line arguments to the script.
+- `./dshutil.d create [filename]` - Creates a new DSH script with all the necessary boilerplate code.
+- `./dshutil.d build <filename>` - Starts watching the given script, and rebuilds it if any changes are made. If the script starts with a comment line like `// DSHTEST: `, the script will be executed with everything following the `:` as command-line arguments to the script.
+- `./dshutil.d compile <filename>` - Builds an executable file using `dub build --single <filename> --build=release`.
+
+On linux, you may additionally perform the following commands to install dshutil as an executable on your system, to help with scripts anywhere.
+
+- `./dshutil.d install` - Builds and installs this script in `/usr/local/bin` so that you can simply run `dshutil` from anywhere.
+- `./dshutil.d uninstall` - Removes `dshutil` from `/usr/local/bin`, if it exists.

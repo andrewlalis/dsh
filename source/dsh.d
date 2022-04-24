@@ -122,6 +122,20 @@ unittest {
 }
 
 /** 
+ * Runs the given command, and exits the program if the return code is not 0.
+ * Params:
+ *   cmd = The command to run.
+ */
+public void runOrQuit(string cmd) {
+    import core.stdc.stdlib : exit;
+    int r = run(cmd);
+    if (r != 0) {
+        stderr.writefln!"Process \"%s\" exited with code %d"(cmd, r);
+        exit(r);
+    }
+}
+
+/** 
  * Gets an environment variable.
  * Params:
  *   key = The name of the environment variable.
