@@ -1,7 +1,7 @@
 /** 
  * Utilities for interacting with the file system.
  */
-module utils.fileutils;
+module dshutils.fileutils;
 
 import std.file;
 import std.path;

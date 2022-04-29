@@ -1,6 +1,6 @@
 #!/usr/bin/env dub
 /+ dub.sdl:
-    dependency "dsh" version="~>1.4.0"
+    dependency "dsh" version="~>1.5.1"
     dependency "fswatch" version="~>0.6.0"
 +/
 
@@ -11,12 +11,13 @@ module dshutil;
 
 import dsh;
 
-const DSH_VERSION = "1.4.0";
+const DSH_VERSION = "1.5.1";
 
 int main(string[] args) {
     import std.string;
     if (args.length < 2) {
         stderr.writeln("Missing required command argument.");
+        printHelp();
         return 1;
     }
     string command = args[1].strip;
@@ -24,6 +25,7 @@ int main(string[] args) {
         writeln(DSH_VERSION);
         return 0;
     }
+    if (command == "--help" || command == "-h") printHelp();
     if (command == "create") return createScript(args[2..$]);
     if (command == "build") return buildScript(args[2..$]);
     if (command == "compile") return compileScript(args[2..$]);
@@ -33,6 +35,20 @@ int main(string[] args) {
     }
     stderr.writefln!"Unsupported command: %s"(command);
     return 1;
+}
+
+void printHelp() {
+    writeln(
+        "dshutil is a command-line utility that helps you create DSH scripts.\n" ~
+        "The following subcommands are available:\n" ~
+        "  create [name]  Creates a new DSH script (optionally with the given filename).\n" ~
+        "  build <name>   Starts watching the given script and compiles it automatically.\n" ~
+        "  compile <name> Compiles the given script to a native executable.\n" ~
+        "  install        Installs a native version of dshutil to /usr/local/bin (Linux only).\n" ~
+        "  uninstall      Removes dshutil from /usr/local/bin (Linux only).\n" ~
+        "  --help | -h    Show this help message.\n" ~
+        "  --version | -v Show the version of DSH that is being used.\n"
+    );
 }
 
 /** 
@@ -68,7 +84,7 @@ int createScript(string[] args) {
     f.writeln("import dsh;");
     f.writeln();
     f.writeln("void main() {");
-    f.writeln("    writeln(\"Edit this to start writing your script.\");");
+    f.writeln("    print(\"Edit this to start writing your script.\");");
     f.writeln("}");
     f.writeln();
     f.close();

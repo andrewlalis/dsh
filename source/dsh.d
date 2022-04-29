@@ -12,7 +12,7 @@ public import std.stdio;
 public import std.file;
 
 // Import all the various utilities.
-public import utils;
+public import dshutils;
 
 public void print(string, Args...)(string s, Args args) {
     writefln(s, args);

@@ -1,4 +1,7 @@
-module utils.processutils;
+/** 
+ * Utilities for running and interacting with processes.
+ */
+module dshutils.processutils;
 
 import dsh;
 

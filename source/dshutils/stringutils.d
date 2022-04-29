@@ -1,4 +1,7 @@
-module utils.stringutils;
+/** 
+ * Utilities for interacting with strings.
+ */
+module dshutils.stringutils;
 
 /** 
  * Convenience method to replace all occurrences of matching patterns with
