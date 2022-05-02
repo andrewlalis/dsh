@@ -14,7 +14,9 @@ On linux, you may additionally perform the following commands to install dshutil
 
 As a shortcut, you can install the latest version of dshutil by executing the following command:
 ```
-wget https://raw.githubusercontent.com/andrewlalis/dsh/main/tools/dshutil.d -O dshutil.d && ./dshutil.d install
+wget https://raw.githubusercontent.com/andrewlalis/dsh/main/tools/dshutil.d -O dshutil.d
+chmod +x dshutil.d
+./dshutil.d install
 ```
 
 ## `dshs.d`
