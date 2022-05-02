@@ -28,6 +28,7 @@ void main(string[] args) {
 }
 ```
 We can compile this script using `dmd test.d path/to/dshs.d`.
+> Note: `./dshutil.d install` will install dshs to `/usr/include/dshs.d`, so you can just reference that.
 
 ## `buildsingle.d`
 Builds a single-file version of DSH to `dshs.d`, which can be useful in cases where you don't want to use dub, but instead just want to compile your script with `dmd my_script.d dshs.d`. It does this by combining the source code of all `.d` sources into a single `dshs.d` file that contains the `dsh` module. It also strips out unittests, as these are not necessary when the main multi-file project is tested.
