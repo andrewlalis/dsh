@@ -2,6 +2,7 @@
 /+ dub.sdl:
     dependency "dsh" version="~>1.6.0"
     dependency "fswatch" version="~>0.6.0"
+    dependency "requests" version="~>2.0.6"
 +/
 
 /**
@@ -41,13 +42,15 @@ void printHelp() {
     writeln(
         "dshutil is a command-line utility that helps you create DSH scripts.\n" ~
         "The following subcommands are available:\n" ~
-        "  create [name]  Creates a new DSH script (optionally with the given filename).\n" ~
-        "  build <name>   Starts watching the given script and compiles it automatically.\n" ~
-        "  compile <name> Compiles the given script to a native executable.\n" ~
-        "  install        Installs a native version of dshutil to /usr/local/bin (Linux only).\n" ~
-        "  uninstall      Removes dshutil from /usr/local/bin (Linux only).\n" ~
-        "  --help | -h    Show this help message.\n" ~
-        "  --version | -v Show the version of DSH that is being used.\n"
+        "  create [name] [--single]  Creates a new DSH script (optionally with the given filename).\n" ~
+        "                            If --single, dshs.d will be downloaded to the script's directory.\n" ~
+        "  build <name>              Starts watching the given script and compiles it automatically.\n" ~
+        "  compile <name>            Compiles the given script to a native executable.\n" ~
+        "  install                   (Linux only) Installs a native version of dshutil to /usr/local/bin, and\n" ~
+        "                            installs dshs.d to /usr/include.\n" ~
+        "  uninstall                 (Linux only) Removes dshutil from /usr/local/bin removes dshs.d from /usr/include.\n" ~
+        "  --help | -h               Show this help message.\n" ~
+        "  --version | -v            Show the version of DSH that is being used.\n"
     );
 }
 
@@ -66,21 +69,32 @@ int createScript(string[] args) {
     while (filePath.exists) {
          filePath = "script" ~ tryCount.to!string ~ ".d";
     }
+    bool useDub = true;
     if (args.length > 0) {
-        filePath = args[0].strip;
-        if (filePath.exists) {
-            stderr.writefln!"Cannot create script because %s already exists."(filePath);
-            return 1;
+        string arg1 = args[0].strip;
+        if (arg1 == "--single") {
+            useDub = false;
+        } else {
+            filePath = arg1;
+            if (filePath.exists) {
+                stderr.writefln!"Cannot create script because %s already exists."(filePath);
+                return 1;
+            }
+            if (args.length > 1 && args[1].strip == "--single") {
+                useDub = false;
+            }
         }
     }
     auto f = new File(filePath, "w");
-    // Only include the shebang on Linux.
-    version (linux) {
-        f.writeln("#!/usr/bin/env dub");
+    if (useDub) {
+        // Only include the shebang on Linux.
+        version (linux) {
+            f.writeln("#!/usr/bin/env dub");
+        }
+        f.writeln("/+ dub.sdl:");
+        f.writeln("    dependency \"dsh\" version=\"~>" ~ DSH_VERSION ~ "\"");
+        f.writeln("+/");
     }
-    f.writeln("/+ dub.sdl:");
-    f.writeln("    dependency \"dsh\" version=\"~>" ~ DSH_VERSION ~ "\"");
-    f.writeln("+/");
     f.writeln("import dsh;");
     f.writeln();
     f.writeln("void main() {");
@@ -88,11 +102,16 @@ int createScript(string[] args) {
     f.writeln("}");
     f.writeln();
     f.close();
-    // If on linux, set the file to be executable.
-    version (linux) {
-        run("chmod +x " ~ filePath);
+    if (useDub) {
+        // If on linux, set the file to be executable.
+        version (linux) {
+            run("chmod +x " ~ filePath);
+        }
+    } else {
+        downloadDshs(".");
+        writeln("Downloaded dshs.d for DSH single-file mode. Include this file when compiling your script.");
     }
-    writefln!"Created script: %s. Call \"./%s\" to run your script."(filePath, filePath);
+    writeln("Created script.");
     return 0;
 }
 
@@ -183,12 +202,29 @@ int compileScript(string[] args) {
     return 0;
 }
 
+private void downloadDshs(string path) {
+    import requests;
+    auto rq = Request();
+    rq.useStreaming = true;
+    auto rs = rq.get("https://raw.githubusercontent.com/andrewlalis/dsh/v"~DSH_VERSION~"/tools/dshs.d");
+    auto stream = rs.receiveAsRange();
+    import std.path;
+    File dshFile = File(buildPath(path, "dshs.d"), "wb");
+    while (!stream.empty) {
+        dshFile.rawWrite(stream.front);
+        stream.popFront;
+    }
+    dshFile.close();
+}
+
 version(linux) {
     int install() {
         runOrQuit("dub build --single --build=release dshutil.d");
         writeln("Copying dshutil to /usr/local/bin/dshutil");
         runOrQuit("sudo mv dshutil /usr/local/bin/dshutil");
         writeln("Installed dshutil to /usr/local/bin");
+        writeln("Downloading dshs.d to /usr/include/dshs.d");
+        runOrQuit("sudo wget https://raw.githubusercontent.com/andrewlalis/dsh/main/tools/dshs.d -O /usr/include/dshs.d");
         return 0;
     }
 
@@ -196,6 +232,10 @@ version(linux) {
         writeln("Removing dshutil from /usr/local/bin");
         runOrQuit("sudo rm -f /usr/local/bin/dshutil");
         writeln("Uninstalled dshutil from /usr/local/bin");
+        if (exists("/usr/include/dshs.d")) {
+            runOrQuit("sudo rm -f /usr/include/dshs.d");
+            writeln("Removed /usr/include/dshs.d");
+        }
         return 0;
     }
 }
