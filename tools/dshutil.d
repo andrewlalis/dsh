@@ -1,17 +1,17 @@
 #!/usr/bin/env dub
 /+ dub.sdl:
-    dependency "dsh" version="~>1.5.1"
+    dependency "dsh" version="~>1.6.0"
     dependency "fswatch" version="~>0.6.0"
 +/
 
 /**
  * A helper program that can be used to make, build, and manage dsh scripts.
  */
-module dshutil;
+module tools.dshutil;
 
 import dsh;
 
-const DSH_VERSION = "1.5.1";
+const DSH_VERSION = "1.6.0";
 
 int main(string[] args) {
     import std.string;

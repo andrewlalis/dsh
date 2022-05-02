@@ -24,25 +24,12 @@ dub build --single script.d
 ```
 > Add the `--build=release` option to specify that you're building a release and not a debug build.
 
+## Single-File Mode
+In case you're planning on compiling your script as an executable and you have no need for the whole dub dependency thing, you can also download this library as a single file, and include it when you compile your D file with the compiler of your choice.
+
 ## Why use DSH?
-DSH offers a few main benefits over writing a script in plain D:
-- You get all the benefits of the D language: strong type checking, high-level constructs and a familiar syntax that compiles to native machine code.
+DSH offers a few main benefits over many other scripts:
+- You get all the benefits of the D language: strong type checking, high-level constructs and a familiar syntax that compiles to native machine code for high performance when needed.
 - Type-safety combined with universal function call syntax make it easy to write expressive scripts that are readable by those who know nothing about D.
 - Easily extend the functionality of your script by importing literally any library from the [DUB package registry](https://code.dlang.org).
 - Cross-platform by default, but D gives you the ability to write platform-specific code whenever you need.
-
-## dshutil.d
-Included in this repository is a `dshutil.d` executable script. You can use this script to make it easier to write DSH scripts. It includes the following commands:
-- `./dshutil.d create [filename]` - Creates a new DSH script with all the necessary boilerplate code.
-- `./dshutil.d build <filename>` - Starts watching the given script, and rebuilds it if any changes are made. If the script starts with a comment line like `// DSHTEST: `, the script will be executed with everything following the `:` as command-line arguments to the script.
-- `./dshutil.d compile <filename>` - Builds an executable file using `dub build --single <filename> --build=release`.
-
-On linux, you may additionally perform the following commands to install dshutil as an executable on your system, to help with scripts anywhere.
-
-- `./dshutil.d install` - Builds and installs this script in `/usr/local/bin` so that you can simply run `dshutil` from anywhere.
-- `./dshutil.d uninstall` - Removes `dshutil` from `/usr/local/bin`, if it exists.
-
-As a shortcut, you can install the latest version of dshutil by executing the following command:
-```
-wget https://raw.githubusercontent.com/andrewlalis/dsh/main/dshutil.d -O dshutil.d && ./dshutil.d install
-```

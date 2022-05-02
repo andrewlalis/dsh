@@ -16,3 +16,6 @@ dsh-test-*
 *.a
 
 dshutil
+tools/test
+tools/test.d
+tools/*.o

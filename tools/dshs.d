@@ -1,7 +1,19 @@
 /** 
- * Utilities for interacting with the file system.
+ * DSH provides conveniences that make it easier to write simple scripts in D.
+ * 
+ * Several phobos modules are preemptively imported so that you don't need to
+ * do so in your script. Additionally, helper functions are defined which are
+ * especially useful for scripts.
  */
-module dshutils.fileutils;
+module dsh;
+
+// Public imports from the standard library.
+public import std.stdio;
+public import std.file;
+
+// Import all the various utilities.
+// IMPORTED SOURCE: ../source/dshutils/fileutils.d
+
 
 import std.file;
 
@@ -52,15 +64,7 @@ public bool isDirEmpty(string dir) {
     return empty(dirEntries(dir, SpanMode.shallow).array);
 }
 
-unittest {
-    assert(!isDirEmpty("source"));
-    assert(!isDirEmpty("source/dsh.d"));
-    assert(!isDirEmpty("source/some-non-existant-file.blah"));
-    auto d = ".test_empty_dir";
-    d.mkdir;
-    scope(exit) d.rmdir;
-    assert(isDirEmpty(d));
-}
+
 
 /** 
  * Walks through all the entries in a directory, and applies the given visitor
@@ -81,17 +85,7 @@ public void walkDir(string dir, void delegate(DirEntry entry) visitor, bool recu
     }
 }
 
-unittest {
-    ulong totalSize = 0;
-    uint filesVisited = 0;
-    void addSize(DirEntry entry) {
-        totalSize += entry.size;
-        filesVisited++;
-    }
-    walkDir(".", &addSize);
-    assert(totalSize > 0);
-    assert(filesVisited > 10);
-}
+
 
 /** 
  * Walks through all the entries in a directory, and applies the given visitor
@@ -153,10 +147,7 @@ public string[] findFiles(string dir, string pattern, bool recursive = true, int
     return matches;
 }
 
-unittest {
-    assert(findFiles("source", ".*\\.d", true, 0) == ["source/dsh.d"]);
-    assert(findFiles(".", "dub.*", false).length == 2);
-}
+
 
 /** 
  * Finds all files in a directory that end with the given extension text.
@@ -171,9 +162,7 @@ public string[] findFilesByExtension(string dir, string extension, bool recursiv
     return findFiles(dir, ".*" ~ extension, recursive, maxDepth);
 }
 
-unittest {
-    assert(findFilesByExtension(".", "json").length == 2);
-}
+
 
 /** 
  * Tries to find a single file matching the given pattern.
@@ -191,10 +180,7 @@ public string findFile(string dir, string pattern, bool recursive = true, int ma
     return matches[0];
 }
 
-unittest {
-    assert(findFile(".", "dub\\.json") !is null);
-    assert(findFile(".", ".*\\.d") is null);
-}
+
 
 /** 
  * Copies all files from the given source directory, to the given destination
@@ -219,9 +205,218 @@ public void copyDir(string sourceDir, string destDir) {
     }
 }
 
-unittest {
-    copyDir("source", "source2");
-    assert(exists("source2") && isDir("source2"));
-    assert(exists("source2/dsh.d"));
-    rmdirRecurse("source2");
+
+// IMPORTED SOURCE: ../source/dshutils/stringutils.d
+
+
+/** 
+ * Convenience method to replace all occurrences of matching patterns with
+ * some other string.
+ * Params:
+ *   s = The string to replace things in.
+ *   pattern = The regular expression to use to match.
+ *   r = The thing to replace each match with.
+ * Returns: The string with all matches replaced.
+ */
+public string replaceAll(string s, string pattern, string r) {
+    if (s is null) return null;
+    if (r is null) return s;
+    import std.regex;
+    auto re = regex(pattern);
+    return std.regex.replaceAll(s, re, r);
+}
+
+
+
+/** 
+ * Finds a matching substring in a given string.
+ * Params:
+ *   s = The string to find a pattern in.
+ *   pattern = The pattern to look for.
+ * Returns: The matching string, if one was found, or null otherwise.
+ */
+public string find(string s, string pattern) {
+    if (s is null || pattern is null) return null;
+    import std.regex;
+    Captures!string c = std.regex.matchFirst(s, pattern);
+    if (c.empty) return null;
+    return c.hit;
+}
+
+
+// IMPORTED SOURCE: ../source/dshutils/processutils.d
+
+
+import dsh;
+
+/** 
+ * Helper for more easily creating processes.
+ */
+public class ProcessBuilder {
+    private File stdin;
+    private File stdout;
+    private File stderr;
+    private string[string] env;
+    private string dir;
+
+    public this() {
+        this.stdin = std.stdio.stdin;
+        this.stdout = std.stdio.stdout;
+        this.stderr = std.stdio.stderr;
+        this.dir = getcwd();
+    }
+
+    public ProcessBuilder inputFrom(string filename) {
+        this.stdin = File(filename, "r");
+        return this;
+    }
+
+    public ProcessBuilder outputTo(string filename) {
+        this.stdout = File(filename, "w");
+        return this;
+    }
+
+    public ProcessBuilder errorTo(string filename) {
+        this.stderr = File(filename, "w");
+        return this;
+    }
+
+    public ProcessBuilder withEnv(string key, string value) {
+        this.env[key] = value;
+        return this;
+    }
+
+    public ProcessBuilder workingDir(string dir) {
+        this.dir = dir;
+        return this;
+    }
+
+    public int run(string command) {
+        import std.process;
+        import std.regex;
+        try {
+            auto r = regex("\\s+");
+            auto s = split(command, r);
+            auto pid = spawnProcess(s, this.stdin, this.stdout, this.stderr, this.env, Config.none, this.dir);
+            return wait(pid);
+        } catch (ProcessException e) {
+            error("Could not start process \"%s\": %s", command, e.msg);
+            return -1;
+        }
+    }
+}
+
+
+
+/**
+ * Runs the given command using the user's shell.
+ * Params:
+ *   cmd = The command to execute.
+ * Returns: The exit code from the command. Generally, 0 indicates success. If
+ * the process could not be started, -1 is returned.
+ */
+public int run(string cmd) {
+    return new ProcessBuilder().run(cmd);
+}
+
+
+
+/** 
+ * Convenience method to run a command and pipe output to a file.
+ * Params:
+ *   cmd = The command to run.
+ *   outputFile = The file to send output to.
+ * Returns: The exit code from the command.
+ */
+public int run(string cmd, string outputFile) {
+    return new ProcessBuilder()
+        .outputTo(outputFile)
+        .errorTo(outputFile)
+        .run(cmd);
+}
+
+/** 
+ * Runs the given command, and exits the program if the return code is not 0.
+ * Params:
+ *   cmd = The command to run.
+ */
+public void runOrQuit(string cmd) {
+    import core.stdc.stdlib : exit;
+    int r = run(cmd);
+    if (r != 0) {
+        error("Process \"%s\" exited with code %d", cmd, r);
+        exit(r);
+    }
+}
+
+public void runOrQuit(string cmd, string outputFile) {
+    import core.stdc.stdlib : exit;
+    int r = run(cmd, outputFile);
+    if (r != 0) {
+        error("Process \"%s\" exited with code %d", cmd, r);
+        exit(r);
+    }
+}
+
+/** 
+ * Gets an environment variable.
+ * Params:
+ *   key = The name of the environment variable.
+ * Returns: The value of the environment variable, or null.
+ */
+public string getEnv(string key) {
+    import std.process : environment;
+    try {
+        return environment[key];
+    } catch (Exception e) {
+        return null;
+    }
+}
+
+
+
+/** 
+ * Sets an environment variable.
+ * Params:
+ *   key = The name of the environment variable.
+ *   value = The value to set.
+ */
+public void setEnv(string key, string value) {
+    import std.process : environment;
+    try {
+        environment[key] = value;
+    } catch (Exception e) {
+        error("Could not set environment variable \"%s\": %s", key, e.msg);
+    }
+}
+
+
+
+
+public void print(string, Args...)(string s, Args args) {
+    writefln(s, args);
+}
+
+public void error(string, Args...)(string s, Args args) {
+    stderr.writefln(s, args);
+}
+
+/** 
+ * Sleeps for a specified amount of milliseconds.
+ * Params:
+ *   amount = The amount of milliseconds to sleep for.
+ */
+public void sleepMillis(long amount) {
+    import core.thread;
+    Thread.sleep(msecs(amount));
+}
+
+/** 
+ * Sleeps for a specified amount of seconds.
+ * Params:
+ *   amount = The amount of seconds to sleep for.
+ */
+public void sleepSeconds(long amount) {
+    import core.thread;
+    Thread.sleep(seconds(amount));
 }
