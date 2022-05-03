@@ -1,6 +1,6 @@
 #!/usr/bin/env dub
 /+ dub.sdl:
-    dependency "dsh" version="~>1.6.0"
+    dependency "dsh" version="~>1.6.1"
     dependency "fswatch" version="~>0.6.0"
     dependency "requests" version="~>2.0.6"
 +/
@@ -12,7 +12,7 @@ module tools.dshutil;
 
 import dsh;
 
-const DSH_VERSION = "1.6.0";
+const DSH_VERSION = "1.6.1";
 
 int main(string[] args) {
     import std.string;
@@ -224,7 +224,7 @@ version(linux) {
         runOrQuit("sudo mv dshutil /usr/local/bin/dshutil");
         writeln("Installed dshutil to /usr/local/bin");
         writeln("Downloading dshs.d to /usr/include/dshs.d");
-        runOrQuit("sudo wget https://raw.githubusercontent.com/andrewlalis/dsh/main/tools/dshs.d -O /usr/include/dshs.d");
+        runOrQuit("sudo wget https://raw.githubusercontent.com/andrewlalis/dsh/v"~DSH_VERSION~"/tools/dshs.d -O /usr/include/dshs.d");
         return 0;
     }
 
