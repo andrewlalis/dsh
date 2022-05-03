@@ -63,6 +63,23 @@ unittest {
 }
 
 /** 
+ * Gets the user's home directory.
+ * Returns: The user's home directory, or null if it could not be determined.
+ */
+public string getHomeDir() {
+    import std.process : environment;
+    version (linux) {
+        return environment.get("HOME");
+    }
+    version (Windows) {
+        string drive = environment.get("HOMEDRIVE");
+        string path = environment.get("HOMEPATH");
+        if (drive is null || path is null) return null;
+        return drive ~ path;
+    }
+}
+
+/** 
  * Walks through all the entries in a directory, and applies the given visitor
  * function to all entries.
  * Params:

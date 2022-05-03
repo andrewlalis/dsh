@@ -14,10 +14,22 @@ public import std.file;
 // Import all the various utilities.
 public import dshutils;
 
+/** 
+ * Convenience method to print a string, optionally with some arguments.
+ * Params:
+ *   s = The format string.
+ *   args = Any arguments to pass to the format string.
+ */
 public void print(string, Args...)(string s, Args args) {
     writefln(s, args);
 }
 
+/** 
+ * Convenience method to print a string to stderr, optionally with some arguments.
+ * Params:
+ *   s = The format string.
+ *   args = Any arguments to pass to the format string.
+ */
 public void error(string, Args...)(string s, Args args) {
     stderr.writefln(s, args);
 }

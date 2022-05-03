@@ -12,200 +12,6 @@ public import std.stdio;
 public import std.file;
 
 // Import all the various utilities.
-// IMPORTED SOURCE: ../source/dshutils/fileutils.d
-
-
-import std.file;
-
-/** 
- * Removes a file or directory if it exists.
- * Params:
- *   file = The file or directory to remove.
- *   recursive = Whether to recursively remove subdirectories.
- * Returns: True if the file or directory was removed, or false otherwise.
- */
-public bool removeIfExists(string file, bool recursive = true) {
-    if (!exists(file)) return false;
-    if (isFile(file)) {
-        remove(file);
-    } else if (isDir(file)) {
-        if (recursive) {
-            rmdirRecurse(file);
-        } else {
-            rmdir(file);
-        }
-    }
-    return true;
-}
-
-/** 
- * Removes a set of files or directories, if they exist.
- * Returns: True if any of the given files were removed.
- */
-public bool removeAnyIfExists(string[] files...) {
-    bool any = false;
-    foreach (file; files) {
-        bool result = removeIfExists(file);
-        any = any || result;
-    }
-    return any;
-}
-
-/** 
- * Checks if a directory is empty.
- * Params:
- *   dir = The directory to check.
- * Returns: True if the given directory exists, is a directory, and is empty.
- */
-public bool isDirEmpty(string dir) {
-    import std.range : empty;
-    import std.array : array;
-    if (!exists(dir) || !isDir(dir)) return false;
-    return empty(dirEntries(dir, SpanMode.shallow).array);
-}
-
-
-
-/** 
- * Walks through all the entries in a directory, and applies the given visitor
- * function to all entries.
- * Params:
- *   dir = The directory to walk through.
- *   visitor = A visitor delegate function to apply to all entries discovered.
- *   recursive = Whether to recursively walk through subdirectories.
- *   maxDepth = How deep to search recursively. -1 indicates infinite recursion.
- */
-public void walkDir(string dir, void delegate(DirEntry entry) visitor, bool recursive = true, int maxDepth = -1) {
-    if (!exists(dir) || !isDir(dir)) return;
-    foreach (DirEntry entry; dirEntries(dir, SpanMode.shallow)) {
-        visitor(entry);
-        if (recursive && entry.isDir && (maxDepth > 0 || maxDepth == -1)) {
-            walkDir(entry.name, visitor, recursive, maxDepth - 1);
-        }
-    }
-}
-
-
-
-/** 
- * Walks through all the entries in a directory, and applies the given visitor
- * function to all entries for which a given filter function returns true.
- * Params:
- *   dir = The directory to walk through.
- *   visitor = A visitor delegate function to apply to all entries discovered.
- *   filter = A filter delegate that determines if an entry should be visited.
- *   recursive = Whether to recursively walk through subdirectories.
- *   maxDepth = How deep to search recursively. -1 indicates infinite recursion.
- */
-public void walkDirFiltered(
-    string dir,
-    void delegate(DirEntry entry) visitor,
-    bool delegate(DirEntry entry) filter,
-    bool recursive = true,
-    int maxDepth = -1
-) {
-    walkDir(dir, delegate(DirEntry entry) {
-        if (filter(entry)) visitor(entry);
-    }, recursive, maxDepth);
-}
-
-/** 
- * Walks through all files in a directory.
- * Params:
- *   dir = The directory to walk through.
- *   visitor = A visitor delegate function to apply to all entries discovered.
- *   recursive = Whether to recursively walk through subdirectories.
- *   maxDepth = How deep to search recursively. -1 indicates infinite recursion.
- */
-public void walkDirFiles(
-    string dir,
-    void delegate(DirEntry entry) visitor,
-    bool recursive = true,
-    int maxDepth = -1
-) {
-    walkDirFiltered(dir, visitor, (entry) {return entry.isFile;}, recursive, maxDepth);
-}
-
-/** 
- * Finds matching files in a directory.
- * Params:
- *   dir = The directory to search in.
- *   pattern = A regex pattern to match against each filename.
- *   recursive = Whether to recursively search subdirectories.
- *   maxDepth = How deep to search recursively. -1 indicates infinite recursion.
- * Returns: A list of matching filenames.
- */
-public string[] findFiles(string dir, string pattern, bool recursive = true, int maxDepth = -1) {
-    import std.regex : matchFirst, Captures;
-    import std.path : baseName;
-    string[] matches = [];
-    walkDirFiles(dir, (entry) {
-        string filename = baseName(entry.name);
-        Captures!string c = matchFirst(filename, pattern);
-        if (!c.empty && c.hit.length == filename.length) matches ~= entry.name;
-    }, recursive, maxDepth);
-    return matches;
-}
-
-
-
-/** 
- * Finds all files in a directory that end with the given extension text.
- * Params:
- *   dir = The directory to search in.
- *   extension = The extension for matching files, such as ".txt" or ".d"
- *   recursive = Whether to recursively search subdirectories.
- *   maxDepth = How deep to search recursively. -1 indicates infinite recursion.
- * Returns: The list of matching files.
- */
-public string[] findFilesByExtension(string dir, string extension, bool recursive = true, int maxDepth = -1) {
-    return findFiles(dir, ".*" ~ extension, recursive, maxDepth);
-}
-
-
-
-/** 
- * Tries to find a single file matching the given pattern.
- * Params:
- *   dir = The directory to search in.
- *   pattern = A regex pattern to match against each filename.
- *   recursive = Whether to recursively search subdirectories.
- *   maxDepth = How deep to search recursively. -1 indicates infinite recursion.
- * Returns: The single matching file that was found, or null if no match was
- * found, or if multiple matches were found.
- */
-public string findFile(string dir, string pattern, bool recursive = true, int maxDepth = -1) {
-    auto matches = findFiles(dir, pattern, recursive, maxDepth);
-    if (matches.length != 1) return null;
-    return matches[0];
-}
-
-
-
-/** 
- * Copies all files from the given source directory, to the given destination
- * directory. Will create the destination directory if it doesn't exist yet.
- * Overwrites any files that already exist in the destination directory.
- * Params:
- *   sourceDir = The source directory to copy from.
- *   destDir = The destination directory to copy to.
- */
-public void copyDir(string sourceDir, string destDir) {
-    if (!isDir(sourceDir)) return;
-    if (exists(destDir) && !isDir(destDir)) return;
-    if (!exists(destDir)) mkdirRecurse(destDir);
-    import std.path : buildPath, baseName;
-    foreach (DirEntry entry; dirEntries(sourceDir, SpanMode.shallow)) {
-        string destPath = buildPath(destDir, baseName(entry.name));
-        if (entry.isDir) {
-            copyDir(entry.name, destPath);
-        } else if (entry.isFile) {
-            copy(entry.name, destPath);
-        }
-    }
-}
-
-
 // IMPORTED SOURCE: ../source/dshutils/stringutils.d
 
 
@@ -391,12 +197,235 @@ public void setEnv(string key, string value) {
 }
 
 
+// IMPORTED SOURCE: ../source/dshutils/fileutils.d
 
 
+import std.file;
+
+/** 
+ * Removes a file or directory if it exists.
+ * Params:
+ *   file = The file or directory to remove.
+ *   recursive = Whether to recursively remove subdirectories.
+ * Returns: True if the file or directory was removed, or false otherwise.
+ */
+public bool removeIfExists(string file, bool recursive = true) {
+    if (!exists(file)) return false;
+    if (isFile(file)) {
+        remove(file);
+    } else if (isDir(file)) {
+        if (recursive) {
+            rmdirRecurse(file);
+        } else {
+            rmdir(file);
+        }
+    }
+    return true;
+}
+
+/** 
+ * Removes a set of files or directories, if they exist.
+ * Returns: True if any of the given files were removed.
+ */
+public bool removeAnyIfExists(string[] files...) {
+    bool any = false;
+    foreach (file; files) {
+        bool result = removeIfExists(file);
+        any = any || result;
+    }
+    return any;
+}
+
+/** 
+ * Checks if a directory is empty.
+ * Params:
+ *   dir = The directory to check.
+ * Returns: True if the given directory exists, is a directory, and is empty.
+ */
+public bool isDirEmpty(string dir) {
+    import std.range : empty;
+    import std.array : array;
+    if (!exists(dir) || !isDir(dir)) return false;
+    return empty(dirEntries(dir, SpanMode.shallow).array);
+}
+
+
+
+/** 
+ * Gets the user's home directory.
+ * Returns: The user's home directory, or null if it could not be determined.
+ */
+public string getHomeDir() {
+    import std.process : environment;
+    version (linux) {
+        return environment.get("HOME");
+    }
+    version (Windows) {
+        string drive = environment.get("HOMEDRIVE");
+        string path = environment.get("HOMEPATH");
+        if (drive is null || path is null) return null;
+        return drive ~ path;
+    }
+}
+
+/** 
+ * Walks through all the entries in a directory, and applies the given visitor
+ * function to all entries.
+ * Params:
+ *   dir = The directory to walk through.
+ *   visitor = A visitor delegate function to apply to all entries discovered.
+ *   recursive = Whether to recursively walk through subdirectories.
+ *   maxDepth = How deep to search recursively. -1 indicates infinite recursion.
+ */
+public void walkDir(string dir, void delegate(DirEntry entry) visitor, bool recursive = true, int maxDepth = -1) {
+    if (!exists(dir) || !isDir(dir)) return;
+    foreach (DirEntry entry; dirEntries(dir, SpanMode.shallow)) {
+        visitor(entry);
+        if (recursive && entry.isDir && (maxDepth > 0 || maxDepth == -1)) {
+            walkDir(entry.name, visitor, recursive, maxDepth - 1);
+        }
+    }
+}
+
+
+
+/** 
+ * Walks through all the entries in a directory, and applies the given visitor
+ * function to all entries for which a given filter function returns true.
+ * Params:
+ *   dir = The directory to walk through.
+ *   visitor = A visitor delegate function to apply to all entries discovered.
+ *   filter = A filter delegate that determines if an entry should be visited.
+ *   recursive = Whether to recursively walk through subdirectories.
+ *   maxDepth = How deep to search recursively. -1 indicates infinite recursion.
+ */
+public void walkDirFiltered(
+    string dir,
+    void delegate(DirEntry entry) visitor,
+    bool delegate(DirEntry entry) filter,
+    bool recursive = true,
+    int maxDepth = -1
+) {
+    walkDir(dir, delegate(DirEntry entry) {
+        if (filter(entry)) visitor(entry);
+    }, recursive, maxDepth);
+}
+
+/** 
+ * Walks through all files in a directory.
+ * Params:
+ *   dir = The directory to walk through.
+ *   visitor = A visitor delegate function to apply to all entries discovered.
+ *   recursive = Whether to recursively walk through subdirectories.
+ *   maxDepth = How deep to search recursively. -1 indicates infinite recursion.
+ */
+public void walkDirFiles(
+    string dir,
+    void delegate(DirEntry entry) visitor,
+    bool recursive = true,
+    int maxDepth = -1
+) {
+    walkDirFiltered(dir, visitor, (entry) {return entry.isFile;}, recursive, maxDepth);
+}
+
+/** 
+ * Finds matching files in a directory.
+ * Params:
+ *   dir = The directory to search in.
+ *   pattern = A regex pattern to match against each filename.
+ *   recursive = Whether to recursively search subdirectories.
+ *   maxDepth = How deep to search recursively. -1 indicates infinite recursion.
+ * Returns: A list of matching filenames.
+ */
+public string[] findFiles(string dir, string pattern, bool recursive = true, int maxDepth = -1) {
+    import std.regex : matchFirst, Captures;
+    import std.path : baseName;
+    string[] matches = [];
+    walkDirFiles(dir, (entry) {
+        string filename = baseName(entry.name);
+        Captures!string c = matchFirst(filename, pattern);
+        if (!c.empty && c.hit.length == filename.length) matches ~= entry.name;
+    }, recursive, maxDepth);
+    return matches;
+}
+
+
+
+/** 
+ * Finds all files in a directory that end with the given extension text.
+ * Params:
+ *   dir = The directory to search in.
+ *   extension = The extension for matching files, such as ".txt" or ".d"
+ *   recursive = Whether to recursively search subdirectories.
+ *   maxDepth = How deep to search recursively. -1 indicates infinite recursion.
+ * Returns: The list of matching files.
+ */
+public string[] findFilesByExtension(string dir, string extension, bool recursive = true, int maxDepth = -1) {
+    return findFiles(dir, ".*" ~ extension, recursive, maxDepth);
+}
+
+
+
+/** 
+ * Tries to find a single file matching the given pattern.
+ * Params:
+ *   dir = The directory to search in.
+ *   pattern = A regex pattern to match against each filename.
+ *   recursive = Whether to recursively search subdirectories.
+ *   maxDepth = How deep to search recursively. -1 indicates infinite recursion.
+ * Returns: The single matching file that was found, or null if no match was
+ * found, or if multiple matches were found.
+ */
+public string findFile(string dir, string pattern, bool recursive = true, int maxDepth = -1) {
+    auto matches = findFiles(dir, pattern, recursive, maxDepth);
+    if (matches.length != 1) return null;
+    return matches[0];
+}
+
+
+
+/** 
+ * Copies all files from the given source directory, to the given destination
+ * directory. Will create the destination directory if it doesn't exist yet.
+ * Overwrites any files that already exist in the destination directory.
+ * Params:
+ *   sourceDir = The source directory to copy from.
+ *   destDir = The destination directory to copy to.
+ */
+public void copyDir(string sourceDir, string destDir) {
+    if (!isDir(sourceDir)) return;
+    if (exists(destDir) && !isDir(destDir)) return;
+    if (!exists(destDir)) mkdirRecurse(destDir);
+    import std.path : buildPath, baseName;
+    foreach (DirEntry entry; dirEntries(sourceDir, SpanMode.shallow)) {
+        string destPath = buildPath(destDir, baseName(entry.name));
+        if (entry.isDir) {
+            copyDir(entry.name, destPath);
+        } else if (entry.isFile) {
+            copy(entry.name, destPath);
+        }
+    }
+}
+
+
+
+
+/** 
+ * Convenience method to print a string, optionally with some arguments.
+ * Params:
+ *   s = The format string.
+ *   args = Any arguments to pass to the format string.
+ */
 public void print(string, Args...)(string s, Args args) {
     writefln(s, args);
 }
 
+/** 
+ * Convenience method to print a string to stderr, optionally with some arguments.
+ * Params:
+ *   s = The format string.
+ *   args = Any arguments to pass to the format string.
+ */
 public void error(string, Args...)(string s, Args args) {
     stderr.writefln(s, args);
 }
